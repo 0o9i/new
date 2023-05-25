@@ -1,128 +1,205 @@
-# 导入所需的库
 import os
-import tkinter as tk
-from tkinter import filedialog
-import pandas as pd
-from PIL import Image, ImageTk
-
-# 创建一个主窗口
-window = tk.Tk()
-window.title("图像分类汇总程序")
-window.geometry("800x600")
-
-# 创建一个标签显示标题
-label_title = tk.Label(window, text="图像分类汇总程序", font=("Arial", 24))
-label_title.pack()
-
-# 创建一个标签显示说明
-label_instruction = tk.Label(window, text="请选择一个包含图片的文件夹，然后输入要查询的日期范围（格式为YYYY-MM-DD），\n点击查询按钮查看结果", font=("Arial", 16))
-label_instruction.pack()
+import re
+import datetime
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, \
+    QFileDialog,QVBoxLayout
+from PyQt5.QtGui import QPixmap
 
 
-# 创建一个按钮选择文件夹
+
+# 定义一个函数，根据文件名获取图片的日期和类别
+def get_date_and_category(filename):
+    # 使用正则表达式匹配文件名中的日期和类别
+    pattern = r"(\d{4}-\d{2}-\d{2}-\d{4})_(ok|ng)\.jpg"
+    match = re.search(pattern, filename)
+    if match:
+        # 如果匹配成功，返回日期和类别
+        date = match.group(1)
+        category = match.group(2)
+        return date, category
+    else:
+        # 如果匹配失败，返回None
+        return None
+
+
+# 定义一个函数，根据给定的日期范围和文件夹路径，统计图片的数量和百分比
+def summarize_images(start_date, end_date, folder):
+    # 创建一个空字典，用于存储每个日期的图片数量和百分比
+    summary = {}
+    # 获取文件夹下的所有文件名
+    files = os.listdir(folder)
+    # 遍历每个文件名
+    for file in files:
+        # 获取文件名对应的日期和类别
+        date, category = get_date_and_category(file)
+        # 如果日期和类别都不为空，并且日期在给定的范围内
+        if date and category and start_date <= date <= end_date:
+            # 如果日期不在字典中，创建一个新的键值对，初始值为[0, 0]
+            if date not in summary:
+                summary[date] = [0, 0]
+            # 如果类别是ok，将字典中对应的列表的第一个元素加一
+            if category == "ok":
+                summary[date][0] += 1
+            # 如果类别是ng，将字典中对应的列表的第二个元素加一
+            if category == "ng":
+                summary[date][1] += 1
+    # 遍历字典中的每个键值对
+    for date, counts in summary.items():
+        # 计算总数和百分比，并将列表更新为[ok数, ng数, ok百分比, ng百分比]
+        total = sum(counts)
+        ok_percentage = round(counts[0] / total * 100, 2)
+        ng_percentage = round(counts[1] / total * 100, 2)
+        summary[date] = [counts[0], counts[1], ok_percentage, ng_percentage]
+    # 返回字典
+    return summary
+
+
+# 定义一个函数，根据给定的日期范围和文件夹路径，显示图片的表格信息和查看按钮
+def show_images(start_date, end_date, folder):
+    # 调用上面定义的函数，获取图片的统计信息
+    summary = summarize_images(start_date, end_date, folder)
+    # 创建一个表格控件，设置行数为字典的长度，列数为4
+    table = QTableWidget(len(summary), 4)
+    # 设置表格的标题为["时间", "ok百分比", "ng百分比", "查看"]
+    table.setHorizontalHeaderLabels(["时间", "ok百分比", "ng百分比", "查看"])
+    # 设置表格的行高为30像素，列宽为100像素
+    # 设置表格的行高为30像素
+    for i in range(len(summary)):
+        table.setRowHeight(i, 30)
+
+    # 设置表格的列宽为100像素
+    for j in range(4):
+        table.setColumnWidth(j, 100)
+
+    # 遍历字典中的每个键值对，按照顺序填充表格中的每一行
+    for i, (date, data) in enumerate(summary.items()):
+        # 创建一个标签控件，显示日期，并将其添加到表格中第i行第0列
+        label = QLabel(date)
+        table.setCellWidget(i, 0, label)
+        # 创建两个标签控件，显示ok百分比和ng百分比，并将其添加到表格中第i行第1列和第2列
+        ok_label = QLabel(str(data[2]) + "%")
+        ng_label = QLabel(str(data[3]) + "%")
+        table.setCellWidget(i, 1, ok_label)
+        table.setCellWidget(i, 2, ng_label)
+        # 创建一个按钮控件，显示"查看"，并将其添加到表格中第i行第3列
+        button = QPushButton("查看")
+        table.setCellWidget(i, 3, button)
+        # 给按钮绑定一个点击事件，调用另一个函数来显示该日期下的所有图片，并传入文件夹路径作为参数
+        button.clicked.connect(lambda: show_images_by_date(date, folder))
+    # 返回表格控件
+    return table
+
+
+# 定义一个函数，根据给定的日期和文件夹路径，显示该日期下的所有图片
+# 定义一个全局变量来存储文件对话框对象
+dialogs = []
+
+# def show_images_by_date(date, folder):
+#     images = []
+#     files = os.listdir(folder)
+#     for file in files:
+#         date_, category = get_date_and_category(file)
+#         if date_ and category and date_ == date:
+#             images.append(os.path.join(folder, file))
+#     dialog = QFileDialog()
+#     dialog.setWindowTitle("查看图片")
+#     dialog.setNameFilter("Images (*.jpg)")
+#     # 设置文件对话框的模式和选项
+#     dialog.setFileMode(QFileDialog.ExistingFiles)
+#     dialog.setOption(QFileDialog.ReadOnly, True)
+#     dialog.setDirectory(folder)
+#     dialog.selectFile(images[0])
+#     dialog.show()
+#     dialogs.append(dialog)
+def show_images_by_date(date, folder):
+    images = []
+    files = os.listdir(folder)
+    for file in files:
+        date_, category = get_date_and_category(file)
+        if date_ and category and date_ == date:
+            images.append(os.path.join(folder, file))
+    # 创建一个新的窗口
+    window = QWidget()
+    window.setWindowTitle("查看图片")
+    # 创建一个QLabel控件
+    label = QLabel()
+    # 设置QLabel控件的大小和缩放模式
+    label.setFixedSize(800, 600)
+    label.setScaledContents(True)
+    # 设置QLabel控件的图片为第一张符合的图片
+    pixmap = QPixmap(images[0])
+    label.setPixmap(pixmap)
+    # 将QLabel控件添加到窗口中
+    window.setLayout(QVBoxLayout())
+    window.layout().addWidget(label)
+    # 显示窗口
+    window.show()
+    dialogs.append(window)
+
+# 创建一个应用程序对象
+app = QApplication([])
+# 创建一个窗口控件，并设置标题为"图片统计"
+window = QWidget()
+window.setWindowTitle("图片统计")
+# 创建五个标签控件，并设置文本为"选择文件夹", "开始日期", "终止日期", "格式: yyyy-mm-dd-hhmm", "结果"
+folder_label = QLabel("选择文件夹")
+start_label = QLabel("开始日期")
+end_label = QLabel("终止日期")
+format_label = QLabel("格式: yyyy-mm-dd-hhmm")
+result_label = QLabel("结果")
+# 创建两个输入框控件，并设置占位符文本为"请输入开始日期"和"请输入终止日期"
+start_edit = QLineEdit()
+start_edit.setPlaceholderText("请输入开始日期")
+end_edit = QLineEdit()
+end_edit.setPlaceholderText("请输入终止日期")
+# 创建两个按钮控件，并设置文本为"浏览"和"查询"
+browse_button = QPushButton("浏览")
+query_button = QPushButton("查询")
+# 给浏览按钮绑定一个点击事件，调用另一个函数来选择并显示文件夹路径
+browse_button.clicked.connect(lambda: select_folder())
+# 给查询按钮绑定一个点击事件，调用另一个函数来获取输入框中的内容并显示结果表格，并传入文件夹路径作为参数
+query_button.clicked.connect(lambda: show_result(folder))
+# 定义一个变量来存储选择的文件夹路径，默认为空字符串（表示当前目录）
+folder = ""
+
+
+# 定义一个函数来选择并显示文件夹路径
 def select_folder():
-    global folder_path  # 定义一个全局变量存储文件夹路径
-    folder_path = filedialog.askdirectory()  # 弹出对话框选择文件夹
-    label_folder.config(text="已选择文件夹：" + folder_path)  # 更新标签显示文件夹路径
+    global folder
+    folder = QFileDialog.getExistingDirectory(window, "选择文件夹", ".")
+    folder_label.setText(f"选择文件夹：{folder}")
 
 
-button_folder = tk.Button(window, text="选择文件夹", font=("Arial", 16), command=select_folder)
-button_folder.pack()
+# 定义一个函数来获取输入框中的内容并显示结果表格，并接收一个参数表示文件夹路径
+def show_result(folder):
+     start_date= start_edit.text().strip()
+     end_date= end_edit.text().strip()
+     try:
+         # 尝试将输入框中的内容转换为datetime对象，并格式化为字符串形式（yyyy-mm-dd-hhmm）
+         start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d-%H%M").strftime("%Y-%m-%d-%H%M")
+         end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d-%H%M").strftime("%Y-%m-%d-%H%M")
+         # 调用上面定义的函数，根据输入框中的内容和文件夹路径显示结果表格，并将其添加到窗口控件中（替换原来的结果标签）
+         table = show_images(start_date, end_date, folder)
+         window.layout().replaceWidget(result_label, table)
 
-# 创建一个标签显示文件夹路径
-label_folder = tk.Label(window, text="未选择文件夹", font=("Arial", 16))
-label_folder.pack()
+     except ValueError:
+         # 如果转换失败（输入格式不正确），则弹出提示信息，并清空输入框内容
+         print("请输入正确格式的日期！")
+         start_edit.clear()
+         end_edit.clear()
 
-# 创建两个输入框输入日期范围
-label_start = tk.Label(window, text="开始日期：", font=("Arial", 16))
-label_start.pack()
-entry_start = tk.Entry(window, font=("Arial", 16))
-entry_start.pack()
-label_end = tk.Label(window, text="结束日期：", font=("Arial", 16))
-label_end.pack()
-entry_end = tk.Entry(window, font=("Arial", 16))
-entry_end.pack()
-
-
-# 创建一个按钮查询结果
-def query_result():
-    global df  # 定义一个全局变量存储数据框
-    df = pd.DataFrame(columns=["日期", "图片路径", "类别"])  # 创建一个空的数据框，有三列：日期，图片路径，类别
-    for file in os.listdir(folder_path):  # 遍历文件夹中的每个文件
-        if file.endswith(".jpg") or file.endswith(".png"):  # 如果是图片文件
-            date = file.split("_")[0]  # 提取图片文件名中的日期部分，假设图片文件名的格式为YYYY-MM-DD_XXXX.jpg或者.png
-            path = os.path.join(folder_path, file)  # 拼接图片文件的完整路径
-            category = file.split("_")[-1].split(".")[0] # 提取图片文件名中的类别部分，即ok或者ng
-            df = pd.concat([df, pd.DataFrame({"日期": [date], "图片路径": [path], "类别": [category]})], ignore_index=True)  # 将这一行数据添加到数据框中
-
-    start_date = entry_start.get()  # 获取输入框中的开始日期
-    end_date = entry_end.get()  # 获取输入框中的结束日期
-    df = df[(df["日期"] >= start_date) & (df["日期"] <= end_date)]  # 筛选出在日期范围内的数据
-
-    summary_df = df.groupby("日期")["类别"].value_counts(normalize=True).unstack().fillna(
-        0)  # 对数据框按照日期和类别进行分组统计，计算每个日期每个类别的占比，并转换成宽表形式，缺失值填充为0
-    summary_df["ok"] = summary_df["ok"].apply(lambda x: "{:.2%}".format(x))  # 将ok列的数值转换成百分比格式，保留两位小数
-    summary_df["ng"] = summary_df["ng"].apply(lambda x: "{:.2%}".format(x))  # 将ng列的数值转换成百分比格式，保留两位小数
-
-    label_result.config(text="查询结果如下：")  # 更新标签显示查询结果
-
-    for widget in frame_result.winfo_children():  # 清空结果框架中的所有组件
-        widget.destroy()
-
-    for i in range(len(summary_df)):  # 遍历每一行数据
-        date = summary_df.index[i]  # 获取日期
-        ok_ratio = summary_df.iloc[i]["ok"]  # 获取ok占比
-        ng_ratio = summary_df.iloc[i]["ng"]  # 获取ng占比
-
-        label_date = tk.Label(frame_result, text=date, font=("Arial", 16))  # 创建一个标签显示日期
-        label_date.grid(row=i, column=0)  # 将标签放在结果框架中的第i行第0列
-
-        label_ok_ratio = tk.Label(frame_result, text=ok_ratio, font=("Arial", 16))  # 创建一个标签显示ok占比
-        label_ok_ratio.grid(row=i, column=1)  # 将标签放在结果框架中的第i行第1列
-
-        label_ng_ratio = tk.Label(frame_result, text=ng_ratio, font=("Arial", 16))  # 创建一个标签显示ng占比
-        label_ng_ratio.grid(row=i, column=2)  # 将标签放在结果框架中的第i行第2列
-
-        def show_images(date):  # 定义一个函数显示某个日期内的所有图片
-            sub_df = df[df["日期"] == date]  # 筛选出该日期对应的数据子集
-
-            for widget in frame_images.winfo_children():  # 清空图片框架中的所有组件
-                widget.destroy()
-
-            for j in range(len(sub_df)):  # 遍历每一行数据子集
-                path = sub_df.iloc[j]["图片路径"]  # 获取图片路径
-
-                image = Image.open(path)  # 打开图片文件
-                image.thumbnail((100, 100))  # 缩放图片大小为100x100像素
-
-                photo = ImageTk.PhotoImage(image)  # 将图片转换成tkinter可用的格式
-
-                label_image = tk.Label(frame_images, image=photo)  # 创建一个标签显示图片
-                label_image.image = photo  # 防止图片被垃圾回收机制回收
-
-                label_image.grid(row=j // 5, column=j % 5)  # 将标签放在图片框架中的第j//5行第j%5列（每行最多显示5张图片）
-
-        button_view = tk.Button(frame_result, text="查看", font=("Arial", 16),
-                                command=lambda: show_images(date))  # 创建一个按钮查看该日期内的所有图片，点击时调用show_images函数，并传入当前日期作为参数
-        button_view.grid(row=i, column=3)  # 将按钮放在结果框架中的第i行第3列
-
-
-button_query = tk.Button(window, text="查询", font=("Arial", 16), command=query_result)
-button_query.pack()
-
-# 创建一个标签显示查询结果标题
-label_result = tk.Label(window, text="查询结果", font=("Arial", 16))
-label_result.pack()
-
-# 创建一个框架显示查询结果表格（包括查看按钮）
-frame_result = tk.Frame(window)
-frame_result.pack()
-
-# 创建一个框架显示查询结果对应的所有图片（按照查看按钮选择）
-frame_images = tk.Frame(window)
-frame_images.pack()
-
-# 使用PyInstaller将这个.py文件打包成.exe文件，命令如下：
-# pyinstaller -F -w -i icon.ico image_summary.py
-
-window.mainloop()  # 进入主循环
+     # 设置窗口的布局为垂直布局，并添加所有的控件
+window.setLayout(QVBoxLayout())
+window.layout().addWidget(folder_label)
+window.layout().addWidget(browse_button)
+window.layout().addWidget(start_label)
+window.layout().addWidget(start_edit)
+window.layout().addWidget(end_label)
+window.layout().addWidget(end_edit)
+window.layout().addWidget(format_label)
+window.layout().addWidget(query_button)
+window.layout().addWidget(result_label)
+     # 显示窗口控件
+window.show()
+     # 运行应用程序
+app.exec_()
