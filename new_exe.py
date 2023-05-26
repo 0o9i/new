@@ -4,6 +4,10 @@ import datetime
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, \
     QFileDialog,QVBoxLayout
 from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QGridLayout
+from PyQt5.QtWidgets import QScrollArea
+
+
 
 
 
@@ -65,11 +69,11 @@ def show_images(start_date, end_date, folder):
     # 设置表格的行高为30像素，列宽为100像素
     # 设置表格的行高为30像素
     for i in range(len(summary)):
-        table.setRowHeight(i, 30)
+        table.setRowHeight(i, 40)
 
     # 设置表格的列宽为100像素
     for j in range(4):
-        table.setColumnWidth(j, 100)
+        table.setColumnWidth(j, 200)
 
     # 遍历字典中的每个键值对，按照顺序填充表格中的每一行
     for i, (date, data) in enumerate(summary.items()):
@@ -112,55 +116,120 @@ dialogs = []
 #     dialog.show()
 #     dialogs.append(dialog)
 def show_images_by_date(date, folder):
+    # 创建一个新的窗口
     images = []
+    # 遍历文件夹里的文件
     files = os.listdir(folder)
     for file in files:
+        # 获取文件的日期和类别
         date_, category = get_date_and_category(file)
+        # 判断是否符合日期条件
         if date_ and category and date_ == date:
+            # 把文件的路径添加到images列表里
             images.append(os.path.join(folder, file))
-    # 创建一个新的窗口
+
     window = QWidget()
     window.setWindowTitle("查看图片")
-    # 创建一个QLabel控件
-    label = QLabel()
-    # 设置QLabel控件的大小和缩放模式
-    label.setFixedSize(800, 600)
-    label.setScaledContents(True)
-    # 设置QLabel控件的图片为第一张符合的图片
-    pixmap = QPixmap(images[0])
-    label.setPixmap(pixmap)
-    # 将QLabel控件添加到窗口中
+    # 创建一个滚动区域
+    scroll_area = QScrollArea()
+    # 设置滚动区域的大小
+    scroll_area.setFixedSize(800, 600)
+    # 创建一个网格布局
+    grid = QGridLayout()
+    # 设置网格的行数和列数
+    rows = 2
+    cols = 6
+    # 遍历所有符合条件的图片
+    for i in range(len(images)):
+        # 创建一个QLabel控件
+        label = QLabel()
+        # 设置QLabel控件的大小和缩放模式
+        label.setFixedSize(200, 200)
+        label.setScaledContents(True)
+        # 设置QLabel控件的图片为第i张符合的图片
+        pixmap = QPixmap(images[i])
+        label.setPixmap(pixmap)
+        # 计算QLabel控件的位置
+        row = i // cols
+        col = i % cols
+        # 添加QLabel控件到网格布局
+        grid.addWidget(label, row, col)
+    # 创建一个小部件，用于容纳网格布局
+    widget = QWidget()
+    widget.setLayout(grid)
+    # 将小部件设置为滚动区域的内容
+    scroll_area.setWidget(widget)
+    # 将滚动区域添加到窗口中
     window.setLayout(QVBoxLayout())
-    window.layout().addWidget(label)
+    window.layout().addWidget(scroll_area)
     # 显示窗口
     window.show()
     dialogs.append(window)
 
-# 创建一个应用程序对象
-app = QApplication([])
-# 创建一个窗口控件，并设置标题为"图片统计"
-window = QWidget()
-window.setWindowTitle("图片统计")
-# 创建五个标签控件，并设置文本为"选择文件夹", "开始日期", "终止日期", "格式: yyyy-mm-dd-hhmm", "结果"
-folder_label = QLabel("选择文件夹")
-start_label = QLabel("开始日期")
-end_label = QLabel("终止日期")
-format_label = QLabel("格式: yyyy-mm-dd-hhmm")
-result_label = QLabel("结果")
-# 创建两个输入框控件，并设置占位符文本为"请输入开始日期"和"请输入终止日期"
-start_edit = QLineEdit()
-start_edit.setPlaceholderText("请输入开始日期")
-end_edit = QLineEdit()
-end_edit.setPlaceholderText("请输入终止日期")
-# 创建两个按钮控件，并设置文本为"浏览"和"查询"
-browse_button = QPushButton("浏览")
-query_button = QPushButton("查询")
-# 给浏览按钮绑定一个点击事件，调用另一个函数来选择并显示文件夹路径
-browse_button.clicked.connect(lambda: select_folder())
-# 给查询按钮绑定一个点击事件，调用另一个函数来获取输入框中的内容并显示结果表格，并传入文件夹路径作为参数
-query_button.clicked.connect(lambda: show_result(folder))
-# 定义一个变量来存储选择的文件夹路径，默认为空字符串（表示当前目录）
-folder = ""
+
+# # 创建一个应用程序对象
+# app = QApplication([])
+# # 创建一个窗口控件，并设置标题为"图片统计"
+# window = QWidget()
+# window.setWindowTitle("图片统计")
+# # 创建五个标签控件，并设置文本为"选择文件夹", "开始日期", "终止日期", "格式: yyyy-mm-dd-hhmm", "结果"
+# folder_label = QLabel("选择文件夹")
+# start_label = QLabel("开始日期")
+# end_label = QLabel("终止日期")
+# format_label = QLabel("格式: yyyy-mm-dd-hhmm")
+# result_label = QLabel("结果")
+# # 创建两个输入框控件，并设置占位符文本为"请输入开始日期"和"请输入终止日期"
+# start_edit = QLineEdit()
+# start_edit.setPlaceholderText("请输入开始日期")
+# end_edit = QLineEdit()
+# end_edit.setPlaceholderText("请输入终止日期")
+# # 创建两个按钮控件，并设置文本为"浏览"和"查询"
+# browse_button = QPushButton("浏览")
+# query_button = QPushButton("查询")
+# # 给浏览按钮绑定一个点击事件，调用另一个函数来选择并显示文件夹路径
+# browse_button.clicked.connect(lambda: select_folder())
+# # 给查询按钮绑定一个点击事件，调用另一个函数来获取输入框中的内容并显示结果表格，并传入文件夹路径作为参数
+# query_button.clicked.connect(lambda: show_result(folder))
+# # 定义一个变量来存储选择的文件夹路径，默认为空字符串（表示当前目录）
+# folder = ""
+
+# 定义一个窗口类
+class Window(QWidget):
+    def __init__(self):
+        super().__init__()
+        # 设置窗口标题和大小
+        self.setWindowTitle('Image Viewer')
+        self.resize(300, 200)
+        # 创建一个日期编辑器，用于选择日期
+        self.date_edit = QDateEdit(self)
+        self.date_edit.move(100, 50)
+        # 创建一个按钮，用于读取数据集
+        self.load_button = QPushButton('Load Dataset', self)
+        self.load_button.move(100, 100)
+        # 创建一个按钮，用于显示图像
+        self.show_button = QPushButton('Show Images', self)
+        self.show_button.move(100, 150)
+        # 连接按钮的槽函数
+        self.load_button.clicked.connect(self.load_dataset)
+        self.show_button.clicked.connect(self.show_images)
+
+    # 定义一个槽函数，用于读取数据集
+    def load_dataset(self):
+        global data # 使用全局变量data
+        # 获取用户选择的文件名
+        file_name = QFileDialog.getOpenFileName(self, 'Open File', '', 'CSV Files (*.csv)')[0]
+        if file_name: # 如果文件名不为空
+            # 读取数据集
+            data = pd.read_csv(file_name)
+
+    # 定义一个槽函数，用于显示图像
+    def show_images(self):
+        global data # 使用全局变量data
+        if data is not None: # 如果数据集不为空
+            # 获取用户选择的日期，并转换为字符串格式
+            date = self.date_edit.date().toString('yyyy-MM-dd')
+            # 调用之前定义的函数，显示图像
+            show_images_by_date(date, folder)
 
 
 # 定义一个函数来选择并显示文件夹路径
