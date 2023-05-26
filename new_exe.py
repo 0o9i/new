@@ -2,10 +2,11 @@ import os
 import re
 import datetime
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, \
-    QFileDialog,QVBoxLayout
+    QFileDialog,QVBoxLayout,QDateEdit
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtWidgets import QScrollArea
+
 
 
 
@@ -167,69 +168,69 @@ def show_images_by_date(date, folder):
     dialogs.append(window)
 
 
-# # 创建一个应用程序对象
-# app = QApplication([])
-# # 创建一个窗口控件，并设置标题为"图片统计"
-# window = QWidget()
-# window.setWindowTitle("图片统计")
-# # 创建五个标签控件，并设置文本为"选择文件夹", "开始日期", "终止日期", "格式: yyyy-mm-dd-hhmm", "结果"
-# folder_label = QLabel("选择文件夹")
-# start_label = QLabel("开始日期")
-# end_label = QLabel("终止日期")
-# format_label = QLabel("格式: yyyy-mm-dd-hhmm")
-# result_label = QLabel("结果")
-# # 创建两个输入框控件，并设置占位符文本为"请输入开始日期"和"请输入终止日期"
-# start_edit = QLineEdit()
-# start_edit.setPlaceholderText("请输入开始日期")
-# end_edit = QLineEdit()
-# end_edit.setPlaceholderText("请输入终止日期")
-# # 创建两个按钮控件，并设置文本为"浏览"和"查询"
-# browse_button = QPushButton("浏览")
-# query_button = QPushButton("查询")
-# # 给浏览按钮绑定一个点击事件，调用另一个函数来选择并显示文件夹路径
-# browse_button.clicked.connect(lambda: select_folder())
-# # 给查询按钮绑定一个点击事件，调用另一个函数来获取输入框中的内容并显示结果表格，并传入文件夹路径作为参数
-# query_button.clicked.connect(lambda: show_result(folder))
-# # 定义一个变量来存储选择的文件夹路径，默认为空字符串（表示当前目录）
-# folder = ""
+# 创建一个应用程序对象
+app = QApplication([])
+# 创建一个窗口控件，并设置标题为"图片统计"
+window = QWidget()
+window.setWindowTitle("图片统计")
+# 创建五个标签控件，并设置文本为"选择文件夹", "开始日期", "终止日期", "格式: yyyy-mm-dd-hhmm", "结果"
+folder_label = QLabel("选择文件夹")
+start_label = QLabel("开始日期")
+end_label = QLabel("终止日期")
+format_label = QLabel("格式: yyyy-mm-dd-hhmm")
+result_label = QLabel("结果")
+# 创建两个输入框控件，并设置占位符文本为"请输入开始日期"和"请输入终止日期"
+start_edit = QLineEdit()
+start_edit.setPlaceholderText("请输入开始日期")
+end_edit = QLineEdit()
+end_edit.setPlaceholderText("请输入终止日期")
+# 创建两个按钮控件，并设置文本为"浏览"和"查询"
+browse_button = QPushButton("浏览")
+query_button = QPushButton("查询")
+# 给浏览按钮绑定一个点击事件，调用另一个函数来选择并显示文件夹路径
+browse_button.clicked.connect(lambda: select_folder())
+# 给查询按钮绑定一个点击事件，调用另一个函数来获取输入框中的内容并显示结果表格，并传入文件夹路径作为参数
+query_button.clicked.connect(lambda: show_result(folder))
+# 定义一个变量来存储选择的文件夹路径，默认为空字符串（表示当前目录）
+folder = ""
 
-# 定义一个窗口类
-class Window(QWidget):
-    def __init__(self):
-        super().__init__()
-        # 设置窗口标题和大小
-        self.setWindowTitle('Image Viewer')
-        self.resize(300, 200)
-        # 创建一个日期编辑器，用于选择日期
-        self.date_edit = QDateEdit(self)
-        self.date_edit.move(100, 50)
-        # 创建一个按钮，用于读取数据集
-        self.load_button = QPushButton('Load Dataset', self)
-        self.load_button.move(100, 100)
-        # 创建一个按钮，用于显示图像
-        self.show_button = QPushButton('Show Images', self)
-        self.show_button.move(100, 150)
-        # 连接按钮的槽函数
-        self.load_button.clicked.connect(self.load_dataset)
-        self.show_button.clicked.connect(self.show_images)
-
-    # 定义一个槽函数，用于读取数据集
-    def load_dataset(self):
-        global data # 使用全局变量data
-        # 获取用户选择的文件名
-        file_name = QFileDialog.getOpenFileName(self, 'Open File', '', 'CSV Files (*.csv)')[0]
-        if file_name: # 如果文件名不为空
-            # 读取数据集
-            data = pd.read_csv(file_name)
-
-    # 定义一个槽函数，用于显示图像
-    def show_images(self):
-        global data # 使用全局变量data
-        if data is not None: # 如果数据集不为空
-            # 获取用户选择的日期，并转换为字符串格式
-            date = self.date_edit.date().toString('yyyy-MM-dd')
-            # 调用之前定义的函数，显示图像
-            show_images_by_date(date, folder)
+# # 定义一个窗口类
+# class Window(QWidget):
+#     def __init__(self):
+#         super().__init__()
+#         # 设置窗口标题和大小
+#         self.setWindowTitle('Image Viewer')
+#         self.resize(300, 200)
+#         # 创建一个日期编辑器，用于选择日期
+#         self.date_edit = QDateEdit(self)
+#         self.date_edit.move(100, 50)
+#         # 创建一个按钮，用于读取数据集
+#         self.load_button = QPushButton('Load Dataset', self)
+#         self.load_button.move(100, 100)
+#         # 创建一个按钮，用于显示图像
+#         self.show_button = QPushButton('Show Images', self)
+#         self.show_button.move(100, 150)
+#         # 连接按钮的槽函数
+#         self.load_button.clicked.connect(self.load_dataset)
+#         self.show_button.clicked.connect(self.show_images)
+#
+#     # 定义一个槽函数，用于读取数据集
+#     def load_dataset(self):
+#         global data # 使用全局变量data
+#         # 获取用户选择的文件名
+#         file_name = QFileDialog.getOpenFileName(self, 'Open File', '', 'CSV Files (*.csv)')[0]
+#         if file_name: # 如果文件名不为空
+#             # 读取数据集
+#             data = pd.read_csv(file_name)
+#
+#     # 定义一个槽函数，用于显示图像
+#     def show_images(self):
+#         global data # 使用全局变量data
+#         if data is not None: # 如果数据集不为空
+#             # 获取用户选择的日期，并转换为字符串格式
+#             date = self.date_edit.date().toString('yyyy-MM-dd')
+#             # 调用之前定义的函数，显示图像
+#             show_images_by_date(date, folder)
 
 
 # 定义一个函数来选择并显示文件夹路径
